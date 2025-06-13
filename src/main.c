@@ -75,6 +75,7 @@ int main(int argc, char** argv)
     int                   arg;
     int                   opt_index  = 0;
     unsigned int          method = 0;
+    char*                 proxy = NULL;
     char*                 host = NULL;
     redfishService*       redfish = NULL;
     redfishPayload*  payload;
@@ -83,7 +84,7 @@ int main(int argc, char** argv)
     std::string      query;
     std::string      leaf;
 
-    while((arg = getopt_long(argc, argv, "?VH:M:", long_options, &opt_index)) != -1)
+    while((arg = getopt_long(argc, argv, "?VH:P:M:", long_options, &opt_index)) != -1)
     {
         switch(arg)
         {
@@ -121,6 +122,9 @@ int main(int argc, char** argv)
             case 'H':
                 host = strdup(optarg);
                 break;
+            case 'P':
+                proxy = strdup(optarg);
+                break;
         }
     }
     if(host == NULL)
@@ -128,7 +132,7 @@ int main(int argc, char** argv)
         print_usage(argv[0]);
         return 1;
     }
-        redfish = createServiceEnumerator(host, NULL, NULL);
+        redfish = createServiceEnumerator(host, proxy, NULL, NULL, NULL);
 
         if(optind < argc)
         {

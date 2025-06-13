@@ -56,6 +56,7 @@ void print_usage(const char* name)
     printf("  -?, --help                 Display this usage message\n");
     printf("  -V, --version              Display the software version\n");
     printf("  -H, --host                 The host to query\n");
+    printf("  -P, --proxy                The proxy to use\n");
     printf("  -v, --verbose              Log more information\n");
     printf("  -u, --username [user]      The username to authenticate with\n");
     printf("  -p, --password [pass]      The password to authenticate with\n");
@@ -73,6 +74,7 @@ int main(int argc, char** argv)
 {
     int              arg;
     int              opt_index  = 0;
+    char*            proxy = NULL;
     char*            host = NULL;
     redfishService*  redfish = NULL;
     char*            username = NULL;
@@ -83,7 +85,7 @@ int main(int argc, char** argv)
     char*            sessionUri = NULL;
     enumeratorAuthentication auth;
 
-    while((arg = getopt_long(argc, argv, "?VH:W:u:p:v", long_options, &opt_index)) != -1)
+    while((arg = getopt_long(argc, argv, "?VH:P:W:u:p:v", long_options, &opt_index)) != -1)
     {
         switch(arg)
         {
@@ -97,6 +99,9 @@ int main(int argc, char** argv)
                 break;
             case 'H':
                 host = strdup(optarg);
+                break;
+            case 'P':
+                proxy = strdup(optarg);
                 break;
             case 'W':
                 if(strcasecmp(optarg, "verdoc") == 0)
@@ -128,7 +133,7 @@ int main(int argc, char** argv)
     auth.authType = REDFISH_AUTH_SESSION;
     auth.authCodes.userPass.username = username;
     auth.authCodes.userPass.password = password;
-    redfish = createServiceEnumerator(host, NULL, &auth, flags);
+    redfish = createServiceEnumerator(host, proxy, NULL, &auth, flags);
     if(redfish == NULL)
     {
         fprintf(stderr, "Unable to create service enumerator\n");

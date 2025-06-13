@@ -348,6 +348,14 @@ threadRet rawAsyncWorkThread(void* data)
             curl_easy_setopt(curl, CURLOPT_FRESH_CONNECT, 1L);
             curl_easy_setopt(curl, CURLOPT_FORBID_REUSE, 1L);
         }
+        if(service->proxy)
+        {
+            /* request to use a proxy */
+            curl_easy_setopt(curl, CURLOPT_PROXY, service->proxy);
+            /* FIXME: Need to add 'proxy' param parsing (now socks5 and no auth option only) */
+            curl_easy_setopt(curl, CURLOPT_SOCKS5_AUTH, (long)CURLAUTH_NONE);
+        }
+
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, workItem->request->timeout);
         curl_easy_setopt(curl, CURLOPT_URL, workItem->request->url);
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);

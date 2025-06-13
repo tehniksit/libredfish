@@ -407,6 +407,7 @@ int main(int argc, char** argv)
 {
     int              arg;
     int              opt_index  = 0;
+    char*            proxy = NULL;
     char*            host = NULL;
     unsigned int     flags = 0;
     enumeratorAuthentication* auth = NULL;
@@ -420,7 +421,7 @@ int main(int argc, char** argv)
     InitializeSRWLock(&mutex);
 #endif
 
-    while((arg = getopt_long(argc, argv, "?VSH:M:f:W:u:p:vT:c:X", long_options, &opt_index)) != -1)
+    while((arg = getopt_long(argc, argv, "?VSH:P:M:f:W:u:p:vT:c:X", long_options, &opt_index)) != -1)
     {
         switch(arg)
         {
@@ -460,6 +461,9 @@ int main(int argc, char** argv)
                 break;
             case 'H':
                 host = strdup(optarg);
+                break;
+            case 'P':
+                proxy = strdup(optarg);
                 break;
             case 'W':
                 if(strcasecmp(optarg, "verdoc") == 0)
@@ -547,7 +551,7 @@ int main(int argc, char** argv)
     libredfishSetDebugFunction(syslogPrintf);
 
     mutex_lock(&mutex);
-    ret = createServiceEnumeratorAsync(host, NULL, auth, flags, gotRedfishService, &mutex);
+    ret = createServiceEnumeratorAsync(host, proxy, NULL, auth, flags, gotRedfishService, &mutex);
     if(ret != false)
     {
         //Wait till the callback is done...

@@ -40,11 +40,11 @@ redfishAsyncOptions gDefaultOptions = {
     .timeout = 20
 };
 
-static redfishService* createServiceEnumeratorNoAuth(const char* host, const char* rootUri, bool enumerate, unsigned int flags);
-static redfishService* createServiceEnumeratorBasicAuth(const char* host, const char* rootUri, const char* username, const char* password, unsigned int flags);
-static redfishService* createServiceEnumeratorSessionAuth(const char* host, const char* rootUri, const char* username, const char* password, unsigned int flags);
-static redfishService* createServiceEnumeratorExistingSessionAuth(const char* host, const char* rootUri, const char* token, const char* sessionUri, unsigned int flags);
-static redfishService* createServiceEnumeratorToken(const char* host, const char* rootUri, const char* token, unsigned int flags);
+static redfishService* createServiceEnumeratorNoAuth(const char* host, const char* proxy, const char* rootUri, bool enumerate, unsigned int flags);
+static redfishService* createServiceEnumeratorBasicAuth(const char* host, const char* proxy, const char* rootUri, const char* username, const char* password, unsigned int flags);
+static redfishService* createServiceEnumeratorSessionAuth(const char* host, const char* proxy, const char* rootUri, const char* username, const char* password, unsigned int flags);
+static redfishService* createServiceEnumeratorExistingSessionAuth(const char* host, const char* proxy, const char* rootUri, const char* token, const char* sessionUri, unsigned int flags);
+static redfishService* createServiceEnumeratorToken(const char* host, const char* proxy, const char* rootUri, const char* token, unsigned int flags);
 static char* makeUrlForService(redfishService* service, const char* uri);
 static json_t* getVersions(redfishService* service, const char* rootUri);
 static char* getSSEUri(redfishService* service);
@@ -52,37 +52,37 @@ static char* getEventSubscriptionUri(redfishService* service);
 static void addStringToJsonObject(json_t* object, const char* key, const char* value);
 static redfishPayload* getPayloadFromAsyncResponse(asyncHttpResponse* response, redfishService* service);
 static unsigned char* base64_encode(const unsigned char* src, size_t len, size_t* out_len);
-static bool createServiceEnumeratorNoAuthAsync(const char* host, const char* rootUri, unsigned int flags, redfishCreateAsyncCallback callback, void* context);
-static bool createServiceEnumeratorBasicAuthAsync(const char* host, const char* rootUri, const char* username, const char* password, unsigned int flags, redfishCreateAsyncCallback callback, void* context);
-static bool createServiceEnumeratorSessionAuthAsync(const char* host, const char* rootUri, const char* username, const char* password, unsigned int flags, redfishCreateAsyncCallback callback, void* context);
-static bool createServiceEnumeratorTokenAsync(const char* host, const char* rootUri, const char* token, unsigned int flags, redfishCreateAsyncCallback callback, void* context);
-static bool createServiceEnumeratorExistingSessionAuthAsync(const char* host, const char* rootUri, const char* token, const char* sessionUri, unsigned int flags, redfishCreateAsyncCallback callback, void* context);
+static bool createServiceEnumeratorNoAuthAsync(const char* host, const char* proxy, const char* rootUri, unsigned int flags, redfishCreateAsyncCallback callback, void* context);
+static bool createServiceEnumeratorBasicAuthAsync(const char* host, const char* proxy, const char* rootUri, const char* username, const char* password, unsigned int flags, redfishCreateAsyncCallback callback, void* context);
+static bool createServiceEnumeratorSessionAuthAsync(const char* host, const char* proxy, const char* rootUri, const char* username, const char* password, unsigned int flags, redfishCreateAsyncCallback callback, void* context);
+static bool createServiceEnumeratorTokenAsync(const char* host, const char* proxy, const char* rootUri, const char* token, unsigned int flags, redfishCreateAsyncCallback callback, void* context);
+static bool createServiceEnumeratorExistingSessionAuthAsync(const char* host, const char* proxy, const char* rootUri, const char* token, const char* sessionUri, unsigned int flags, redfishCreateAsyncCallback callback, void* context);
 static bool getVersionsAsync(redfishService* service, const char* rootUri, redfishCreateAsyncCallback callback, void* context);
 static char* getDestinationAddress(const char* addressInfo, SOCKET* socket);
 static void freeServicePtr(redfishService* service);
 
-redfishService* createServiceEnumerator(const char* host, const char* rootUri, enumeratorAuthentication* auth, unsigned int flags)
+redfishService* createServiceEnumerator(const char* host, const char* proxy, const char* rootUri, enumeratorAuthentication* auth, unsigned int flags)
 {
     REDFISH_DEBUG_DEBUG_PRINT("%s: Entered. host = %s, rootUri = %s, auth = %p, flags = %x\n", __func__, host, rootUri, auth, flags);
     if(auth == NULL)
     {
-        return createServiceEnumeratorNoAuth(host, rootUri, true, flags);
+        return createServiceEnumeratorNoAuth(host, proxy, rootUri, true, flags);
     }
     if(auth->authType == REDFISH_AUTH_BASIC)
     {
-        return createServiceEnumeratorBasicAuth(host, rootUri, auth->authCodes.userPass.username, auth->authCodes.userPass.password, flags);
+        return createServiceEnumeratorBasicAuth(host, proxy, rootUri, auth->authCodes.userPass.username, auth->authCodes.userPass.password, flags);
     }
     else if(auth->authType == REDFISH_AUTH_BEARER_TOKEN)
     {
-        return createServiceEnumeratorToken(host, rootUri, auth->authCodes.authToken.token, flags);
+        return createServiceEnumeratorToken(host, proxy, rootUri, auth->authCodes.authToken.token, flags);
     }
     else if(auth->authType == REDFISH_AUTH_SESSION)
     {
-        return createServiceEnumeratorSessionAuth(host, rootUri, auth->authCodes.userPass.username, auth->authCodes.userPass.password, flags);
+        return createServiceEnumeratorSessionAuth(host, proxy, rootUri, auth->authCodes.userPass.username, auth->authCodes.userPass.password, flags);
     }
     else if(auth->authType == REDFISH_AUTH_EXISTING_SESSION)
     {
-        return createServiceEnumeratorExistingSessionAuth(host, rootUri, auth->authCodes.session.token, auth->authCodes.session.uri, flags);
+        return createServiceEnumeratorExistingSessionAuth(host, proxy, rootUri, auth->authCodes.session.token, auth->authCodes.session.uri, flags);
     }
     else
     {
@@ -545,28 +545,28 @@ static void setupRequestFromOptions(asyncHttpRequest* request, redfishService* s
     request->timeout = options->timeout;
 }
 
-bool createServiceEnumeratorAsync(const char* host, const char* rootUri, enumeratorAuthentication* auth, unsigned int flags, redfishCreateAsyncCallback callback, void* context)
+bool createServiceEnumeratorAsync(const char* host, const char* proxy, const char* rootUri, enumeratorAuthentication* auth, unsigned int flags, redfishCreateAsyncCallback callback, void* context)
 {
     REDFISH_DEBUG_DEBUG_PRINT("%s: Entered. host = %s, rootUri = %s, auth = %p, callback = %p, context = %p\n", __func__, host, rootUri, auth, callback, context);
     if(auth == NULL)
     {
-        return createServiceEnumeratorNoAuthAsync(host, rootUri, flags, callback, context);
+        return createServiceEnumeratorNoAuthAsync(host, proxy, rootUri, flags, callback, context);
     }
     if(auth->authType == REDFISH_AUTH_BASIC)
     {
-        return createServiceEnumeratorBasicAuthAsync(host, rootUri, auth->authCodes.userPass.username, auth->authCodes.userPass.password, flags, callback, context);
+        return createServiceEnumeratorBasicAuthAsync(host, proxy, rootUri, auth->authCodes.userPass.username, auth->authCodes.userPass.password, flags, callback, context);
     }
     else if(auth->authType == REDFISH_AUTH_BEARER_TOKEN)
     {
-        return createServiceEnumeratorTokenAsync(host, rootUri, auth->authCodes.authToken.token, flags, callback, context);
+        return createServiceEnumeratorTokenAsync(host, proxy, rootUri, auth->authCodes.authToken.token, flags, callback, context);
     }
     else if(auth->authType == REDFISH_AUTH_SESSION)
     {
-        return createServiceEnumeratorSessionAuthAsync(host, rootUri, auth->authCodes.userPass.username, auth->authCodes.userPass.password, flags, callback, context);
+        return createServiceEnumeratorSessionAuthAsync(host, proxy, rootUri, auth->authCodes.userPass.username, auth->authCodes.userPass.password, flags, callback, context);
     }
     else if(auth->authType == REDFISH_AUTH_EXISTING_SESSION)
     {
-        return createServiceEnumeratorExistingSessionAuthAsync(host, rootUri, auth->authCodes.session.token, auth->authCodes.session.uri, flags, callback, context);
+        return createServiceEnumeratorExistingSessionAuthAsync(host, proxy, rootUri, auth->authCodes.session.token, auth->authCodes.session.uri, flags, callback, context);
     }
     else
     {
@@ -1183,6 +1183,10 @@ static void freeServicePtr(redfishService* service)
     terminateAsyncThread(service);
     free(service->host);
     service->host = NULL;
+    if(service->proxy != NULL)
+    {
+        free(service->proxy);
+    }
     json_decref(service->versions);
     service->versions = NULL;
     if(service->sessionToken != NULL)
@@ -1270,7 +1274,7 @@ void serviceDecRefAndWait(redfishService* service)
     }
 }
 
-static redfishService* createServiceEnumeratorNoAuth(const char* host, const char* rootUri, bool enumerate, unsigned int flags)
+static redfishService* createServiceEnumeratorNoAuth(const char* host, const char* proxy, const char* rootUri, bool enumerate, unsigned int flags)
 {
     redfishService* ret;
 
@@ -1286,6 +1290,9 @@ static redfishService* createServiceEnumeratorNoAuth(const char* host, const cha
 #else
     ret->host = strdup(host);
 #endif
+    if(proxy)
+        ret->proxy = strdup(proxy);
+
     ret->flags = flags;
     ret->tcpSocket = -1;
     if(enumerate)
@@ -1296,7 +1303,7 @@ static redfishService* createServiceEnumeratorNoAuth(const char* host, const cha
     return ret;
 }
 
-static bool createServiceEnumeratorNoAuthAsync(const char* host, const char* rootUri, unsigned int flags, redfishCreateAsyncCallback callback, void* context)
+static bool createServiceEnumeratorNoAuthAsync(const char* host, const char* proxy, const char* rootUri, unsigned int flags, redfishCreateAsyncCallback callback, void* context)
 {
     redfishService* ret;
     bool rc;
@@ -1312,6 +1319,9 @@ static bool createServiceEnumeratorNoAuthAsync(const char* host, const char* roo
 #else
     ret->host = strdup(host);
 #endif
+    if(proxy)
+        ret->proxy = strdup(proxy);
+
     ret->flags = flags;
     ret->tcpSocket = -1;
     rc = getVersionsAsync(ret, rootUri, callback, context);
@@ -1322,7 +1332,7 @@ static bool createServiceEnumeratorNoAuthAsync(const char* host, const char* roo
     return rc;
 }
 
-static redfishService* createServiceEnumeratorBasicAuth(const char* host, const char* rootUri, const char* username, const char* password, unsigned int flags)
+static redfishService* createServiceEnumeratorBasicAuth(const char* host, const char* proxy, const char* rootUri, const char* username, const char* password, unsigned int flags)
 {
     redfishService* ret;
     char userPass[1024] = {0};
@@ -1339,13 +1349,13 @@ static redfishService* createServiceEnumeratorBasicAuth(const char* host, const 
     snprintf(userPass, sizeof(userPass), "Basic %s", base64);
     free(base64);
 
-    ret = createServiceEnumeratorNoAuth(host, rootUri, false, flags);
+    ret = createServiceEnumeratorNoAuth(host, proxy, rootUri, false, flags);
     ret->otherAuth = safeStrdup(userPass);
     ret->versions = getVersions(ret, rootUri);
     return ret;
 }
 
-static bool createServiceEnumeratorBasicAuthAsync(const char* host, const char* rootUri, const char* username, const char* password, unsigned int flags, redfishCreateAsyncCallback callback, void* context)
+static bool createServiceEnumeratorBasicAuthAsync(const char* host, const char* proxy, const char* rootUri, const char* username, const char* password, unsigned int flags, redfishCreateAsyncCallback callback, void* context)
 {
     redfishService* ret;
     char userPass[1024] = {0};
@@ -1364,7 +1374,7 @@ static bool createServiceEnumeratorBasicAuthAsync(const char* host, const char* 
     free(base64);
 
     //This does no network interactions when enumerate is false... use it because it's easier
-    ret = createServiceEnumeratorNoAuth(host, rootUri, false, flags);
+    ret = createServiceEnumeratorNoAuth(host, proxy, rootUri, false, flags);
     if(ret == NULL)
     {
         return false;
@@ -1378,7 +1388,7 @@ static bool createServiceEnumeratorBasicAuthAsync(const char* host, const char* 
     return rc;
 }
 
-static redfishService* createServiceEnumeratorSessionAuth(const char* host, const char* rootUri, const char* username, const char* password, unsigned int flags)
+static redfishService* createServiceEnumeratorSessionAuth(const char* host, const char* proxy, const char* rootUri, const char* username, const char* password, unsigned int flags)
 {
     redfishService* ret;
     redfishPayload* payload;
@@ -1390,7 +1400,7 @@ static redfishService* createServiceEnumeratorSessionAuth(const char* host, cons
     json_t* post;
     char* content;
 
-    ret = createServiceEnumeratorNoAuth(host, rootUri, true, flags);
+    ret = createServiceEnumeratorNoAuth(host, proxy, rootUri, true, flags);
     if(ret == NULL)
     {
         return NULL;
@@ -1449,11 +1459,11 @@ static redfishService* createServiceEnumeratorSessionAuth(const char* host, cons
     return ret;
 }
 
-static redfishService* createServiceEnumeratorExistingSessionAuth(const char* host, const char* rootUri, const char* token, const char* sessionUri, unsigned int flags)
+static redfishService* createServiceEnumeratorExistingSessionAuth(const char* host, const char* proxy, const char* rootUri, const char* token, const char* sessionUri, unsigned int flags)
 {
     redfishService* ret;
 
-    ret = createServiceEnumeratorNoAuth(host, rootUri, true, flags);
+    ret = createServiceEnumeratorNoAuth(host, proxy, rootUri, true, flags);
     if(ret == NULL)
     {
         return NULL;
@@ -1647,7 +1657,7 @@ static void finishedRedfishCreate(redfishService* service, void* context)
     }
 }
 
-static bool createServiceEnumeratorSessionAuthAsync(const char* host, const char* rootUri, const char* username, const char* password, unsigned int flags, redfishCreateAsyncCallback callback, void* context)
+static bool createServiceEnumeratorSessionAuthAsync(const char* host, const char* proxy, const char* rootUri, const char* username, const char* password, unsigned int flags, redfishCreateAsyncCallback callback, void* context)
 {
     bool rc;
     createServiceSessionAuthAsyncContext* myContext;
@@ -1664,7 +1674,7 @@ static bool createServiceEnumeratorSessionAuthAsync(const char* host, const char
     myContext->originalContext = context;
     myContext->service = NULL;
 
-    rc = createServiceEnumeratorNoAuthAsync(host, rootUri, flags, finishedRedfishCreate, myContext);
+    rc = createServiceEnumeratorNoAuthAsync(host, proxy, rootUri, flags, finishedRedfishCreate, myContext);
     if(rc == false)
     {
         free(myContext->username);
@@ -1674,11 +1684,11 @@ static bool createServiceEnumeratorSessionAuthAsync(const char* host, const char
     return rc;
 }
 
-static redfishService* createServiceEnumeratorToken(const char* host, const char* rootUri, const char* token, unsigned int flags)
+static redfishService* createServiceEnumeratorToken(const char* host, const char* proxy, const char* rootUri, const char* token, unsigned int flags)
 {
     redfishService* ret;
 
-    ret = createServiceEnumeratorNoAuth(host, rootUri, false, flags);
+    ret = createServiceEnumeratorNoAuth(host, proxy, rootUri, false, flags);
     if(ret == NULL)
     {
         return ret;
@@ -1688,13 +1698,13 @@ static redfishService* createServiceEnumeratorToken(const char* host, const char
     return ret;
 }
 
-static bool createServiceEnumeratorTokenAsync(const char* host, const char* rootUri, const char* token, unsigned int flags, redfishCreateAsyncCallback callback, void* context)
+static bool createServiceEnumeratorTokenAsync(const char* host, const char* proxy, const char* rootUri, const char* token, unsigned int flags, redfishCreateAsyncCallback callback, void* context)
 {
     redfishService* ret;
     bool rc;
 
     //This does no network interactions when enumerate is false... use it because it's easier
-    ret = createServiceEnumeratorNoAuth(host, rootUri, false, flags);
+    ret = createServiceEnumeratorNoAuth(host, proxy, rootUri, false, flags);
     if(ret == NULL)
     {
         return false;
@@ -1708,13 +1718,13 @@ static bool createServiceEnumeratorTokenAsync(const char* host, const char* root
     return rc;
 }
 
-static bool createServiceEnumeratorExistingSessionAuthAsync(const char* host, const char* rootUri, const char* token, const char* sessionUri, unsigned int flags, redfishCreateAsyncCallback callback, void* context)
+static bool createServiceEnumeratorExistingSessionAuthAsync(const char* host, const char* proxy, const char* rootUri, const char* token, const char* sessionUri, unsigned int flags, redfishCreateAsyncCallback callback, void* context)
 {
     redfishService* ret;
     bool rc;
 
     //This does no network interactions when enumerate is false... use it because it's easier
-    ret = createServiceEnumeratorNoAuth(host, rootUri, false, flags);
+    ret = createServiceEnumeratorNoAuth(host, proxy, rootUri, false, flags);
     if(ret == NULL)
     {
         return false;

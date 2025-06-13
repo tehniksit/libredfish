@@ -38,6 +38,8 @@ typedef struct _redfishService {
     thread asyncThread;
     /** The non-async CURL implementation **/
     CURL* curl;
+    /** The proxy host string **/
+    char* proxy;
     /** A json object containing all Redfish versions supported by this service **/
     json_t* versions;
     /**

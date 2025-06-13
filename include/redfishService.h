@@ -158,7 +158,7 @@ typedef void (*redfishEventCallback)(redfishPayload* event, enumeratorAuthentica
  * @see serviceDecRef
  * @see serviceDecRefAndWait
  */
-REDFISH_EXPORT redfishService* createServiceEnumerator(const char* host, const char* rootUri, enumeratorAuthentication* auth, unsigned int flags);
+REDFISH_EXPORT redfishService* createServiceEnumerator(const char* host, const char* proxy, const char* rootUri, enumeratorAuthentication* auth, unsigned int flags);
 /**
  * @brief Obtain the JSON payload corresponding to the given URI on the service.
  *
@@ -407,7 +407,7 @@ typedef void (*redfishCreateAsyncCallback)(redfishService* service, void* contex
  * @see serviceDecRef
  * @see serviceDecRefAndWait
  */
-REDFISH_EXPORT bool createServiceEnumeratorAsync(const char* host, const char* rootUri, enumeratorAuthentication* auth, unsigned int flags, redfishCreateAsyncCallback callback, void* context);
+REDFISH_EXPORT bool createServiceEnumeratorAsync(const char* host, const char* proxy, const char* rootUri, enumeratorAuthentication* auth, unsigned int flags, redfishCreateAsyncCallback callback, void* context);
 
 /**
  * Callback for Redfish async calls

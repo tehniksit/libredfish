@@ -84,6 +84,7 @@ void print_usage(const char* name)
     printf("  -?, --help                 Display this usage message\n");
     printf("  -V, --version              Display the software version\n");
     printf("  -H, --host                 The host to query\n");
+    printf("  -P, --proxy                The proxy to use\n");
     printf("  -v, --verbose              Log more information\n");
     printf("  -T, --token [bearer token] A bearer token to use instead of standard redfish auth\n");
     printf("  -u, --username [user]      The username to authenticate with\n");
@@ -103,6 +104,7 @@ int main(int argc, char** argv)
     int              arg;
     int              opt_index  = 0;
     char*            host = NULL;
+    char*            proxy = NULL;
     redfishService*  redfish = NULL;
     unsigned int     flags = 0;
     char*            username = NULL;
@@ -113,7 +115,7 @@ int main(int argc, char** argv)
 
     memset(&auth, 0, sizeof(auth));
 
-    while((arg = getopt_long(argc, argv, "?VSH:W:u:p:vT:X", long_options, &opt_index)) != -1)
+    while((arg = getopt_long(argc, argv, "?VSH:P:W:u:p:vT:X", long_options, &opt_index)) != -1)
     {
         switch(arg)
         {
@@ -127,6 +129,9 @@ int main(int argc, char** argv)
                 break;
             case 'H':
                 host = strdup(optarg);
+                break;
+            case 'P':
+                proxy = strdup(optarg);
                 break;
             case 'W':
                 if(strcasecmp(optarg, "verdoc") == 0)
@@ -167,17 +172,17 @@ int main(int argc, char** argv)
     {
         auth.authCodes.userPass.username = username;
         auth.authCodes.userPass.password = password;
-        redfish = createServiceEnumerator(host, NULL, &auth, flags);
+        redfish = createServiceEnumerator(host, proxy, NULL, &auth, flags);
     }
     else if(token)
     {
         auth.authCodes.authToken.token = token;
         auth.authType = REDFISH_AUTH_BEARER_TOKEN;
-        redfish = createServiceEnumerator(host, NULL, &auth, flags);
+        redfish = createServiceEnumerator(host, proxy, NULL, &auth, flags);
     }
     else
     {
-        redfish = createServiceEnumerator(host, NULL, NULL, flags);
+        redfish = createServiceEnumerator(host, proxy, NULL, NULL, flags);
     }
     if(redfish == NULL)
     {
